@@ -2,13 +2,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.io
 
+# Prepare the experimental data
+# Load data file
 data_name = 'MouseKidney_green'
 data_dir = 'Data/'+data_name+'.mat'
-data = scipy.io.loadmat(data_dir)
+data = scipy.io.loadmat(data_dir) # refer to 'data_description.txt' for more details
+# Display raw images
+imlow_HDR = data['imlow_HDR'] # 'center' shows the first low-res raw image; 'all' dynamically shows all low-res images
 
-imlow_HDR = data['imlow_HDR']
-
-show_mode = 'all'
+show_mode = 'first'
 if show_mode == 'first':
   plt.title('raw image 1')
   plt.imshow(imlow_HDR[:,:,0],cmap='gray')
@@ -22,5 +24,41 @@ elif show_mode == 'all':
       plt.title('raw image '+str(i+slide*40+1))
       plt.imshow(imlow_HDR[:,:,i+slide*40],cmap='gray')
       plt.axis('off')
-    
     plt.show()
+
+# Set up the experiment parameters
+xstart = 18, ystart = 20 # absolute coordinate of initial LED
+arraysize = 15 # side length of lit LED array
+xlocation, ylocation = LED_location(xstart, ystart, arraysize)
+H = 90.88 # distance between LEDs and sample, in mm
+LEDp = 4 # distance between adjacent LEDs, in mm
+nglass = 1.52 # refraction index of glass substrate
+t = 1 # glass thickness, in mm
+kx, ky, NAt = k_vector(xlocation-xstart, ylocation-ystart, H, LEDp, t, theta, xint, yint, arraysize^2)
+
+# Reconstruct by FP algorithm
+NA          = 0.1      # objective NA
+spsize      = 1.845e-6 # pixel size of low-res image on sample plane, in m
+upsmp_ratio = 4        # upsampling ratio
+psize       = spsize/upsmp_ratio # pixel size of high-res image on sample plane, in m
+
+class Opts:
+    __init__(self, loopnum=10, alpha=1, beta=1, gamma_obj=1, gamma_p=1, eta_obj=0.2, eta_p=0.2, T=1):
+        self.loopnum   = loopnum   # iteration number
+        self.alpha     = alpha     # '1' for ePIE, other value for rPIE
+        self.beta      = beta      # '1' for ePIE, other value for rPIE
+        self.gamma_obj = gamma_obj # the step size for object updating
+        self.gamma_p   = gamma_p   # the step size for pupil updating
+        self.eta_obj   = eta_obj   # the step size for adding momentum to object updating
+        self.eta_p     = eta_p     # the step size for adding momentum to pupil updating
+        self.T         = T         # do momentum every T images. '0' for no momentum during the recovery; integer, generally (0, arraysize^2].
+        # self.aberration = aberration # pre-calibrated aberration, if available
+        self.abberation = 0 # TEMP use ^ that one
+        # TODO: figure out how to add an abberation
+
+# CJCJCJ: Left off here
+used_idx = 1:1:arraysize^2 # choose which raw image is used, for example, 1:2:arraysize^2 means do FPM recovery with No1 image, No3 image, No5 image......
+imlow_used = imlow_HDR(:,:,used_idx)
+kx_used = kx(used_idx)
+ky_used = ky(used_idx)
+[him, tt, fprobe, imlow_HDR1] = himrecover(imlow_used, kx_used, ky_used, NA, wlength, spsize, psize, z, opts)
