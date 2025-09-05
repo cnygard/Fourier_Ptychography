@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.io
+import os
+import pickle
 
 # Prepare the experimental data
 # Load data file
@@ -56,9 +58,31 @@ class Opts:
         self.abberation = 0 # TEMP use ^ that one
         # TODO: figure out how to add an abberation
 
-# CJCJCJ: Left off here
 used_idx = 1:1:arraysize^2 # choose which raw image is used, for example, 1:2:arraysize^2 means do FPM recovery with No1 image, No3 image, No5 image......
-imlow_used = imlow_HDR(:,:,used_idx)
-kx_used = kx(used_idx)
-ky_used = ky(used_idx)
-[him, tt, fprobe, imlow_HDR1] = himrecover(imlow_used, kx_used, ky_used, NA, wlength, spsize, psize, z, opts)
+imlow_used = imlow_HDR[:,:,used_idx]
+kx_used = kx[used_idx]
+ky_used = ky[used_idx]
+him, tt, fprobe, imlow_HDR1 = himrecover(imlow_used, kx_used, ky_used, NA, wlength, spsize, psize, z, opts)
+
+# display
+plt.subplot(121)
+plt.title('Amplitude')
+plt.imshow(np.abs(him[50:-50,50:-50]),cmap='gray')
+plt.subplot(122)
+plt.title('Phase')
+plt.imshow(np.angle(him[50:-50,50:-50]),cmap='gray')
+plt.show()
+print(f'Wavelength: {wlength*1e+9} nm, Loop: {opts.loopnum}')
+print(f'Maximum illumination NA = {np.max(NAt[used_ix])}')
+
+# save results
+out_dir = 'Results'
+os.mkdir(out_dir)
+out_name = f'{data_name}_result.mat'
+out_data = {
+    'him': him,
+    'fprobe': fprobe,
+    'tt': tt,
+    'imlow_HDR1': imlow_HDR1
+}
+savemat(f'{out_dir}/{out_name}', out_data)
