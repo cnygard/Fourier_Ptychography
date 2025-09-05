@@ -1,6 +1,7 @@
 import numpy as np
 import cv2 as cv
 import matplotlib.pyplot as plt
+import math
 from gzn import gzn
 
 
@@ -51,3 +52,15 @@ def himrecover(imseqlow, kx, ky, NA, wlength, spsize, psize, z, _opts):
     zn = cv.resize(zn, (n1, m1)) # switched m1 and n1 because OpenCV uses (width, height)
     if np.any(aberration != 0):
         fmaskpro = aberration # pre-calibrated aberration
+    else:
+        fmaskpro = np.multiply(1, float(np.power(np.power(((N1 - ((m1 + 1) / 2)) / NAfily), 2 + ((M1 - ((n1 + 1) / 2)) / NAfilx)), 2) <= 1)) # low pass filter
+        # defocus aberration, astigmatism aberration
+        fmaskpro = np.multiply(H2[np.round(((m + 1) / 2) - ((m1 - 1) / 2)):np.round(((m + 1) / 2) + ((m1 - 1) / 2)),
+                      np.round(((n + 1) / 2) - ((n1 - 1) / 2)):np.round(((n + 1) / 2) + ((n1 - 1) / 2))], np.exp(math.pi * np.multiply(1j, zn)))
+        
+    # initialization
+    him = cv.resize(np.sum(imseqlow, axis=2), (n, m)) # 2 since matlab dimensions are 1-indexed (?), switched n and m since OpenCV is (w, h)
+    himFT = np.fft.fftshift(np.fft.fft2(him))
+
+    # main part to optimize estimate of high-res image
+    
