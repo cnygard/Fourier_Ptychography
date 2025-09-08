@@ -23,6 +23,7 @@ def himrecover(imseqlow, kx, ky, NA, wlength, spsize, psize, z, _opts):
 
     # TODO: add in opts definitions / if statements
     aberration = [1, 2, 3] # replace with opts definition of aberration
+    loopnum = 0 # replace with opts definition of loopnum
 
     # k-spare parameterization
     m1, n1, numim = imseqlow.shape
@@ -63,4 +64,24 @@ def himrecover(imseqlow, kx, ky, NA, wlength, spsize, psize, z, _opts):
     himFT = np.fft.fftshift(np.fft.fft2(him))
 
     # main part to optimize estimate of high-res image
+    for i in range(1, 3):
+        for i3 in range(1, numim + 1):
+            # when the image size is even, there will be a half pixel displacement for the center
+            kxc = np.round((n + 1) / 2 - (kx[0, i3 - 1] / dkx)) # -1 because python is 0-indexed
+            kyc = np.round((m + 1) / 2 - (ky[0, i3 - 1] / dky))
+            kyl = np.round(kyc - (m1 - 1) / 2)
+            kyh = np.round(kyc + (m1 - 1) / 2)
+            kxl = np.round(kxc - (n1 - 1) / 2)
+            kxh = np.round(kxc + (n1 - 1) / 2)
+            O_j = himFT[kyl - 1:kyh, kxl - 1:kxh] # -1 because python is 0-indexed
+            lowFT = O_j * fmaskpro
+            im_lowFT = np.fft.ifft2(np.fft.ifftshift(lowFT))
+            updatetemp = (pratio**2) * imseqlow[:, :, i3 - 1]
+            im_lowFT = updatetemp * np.exp(1j * np.angle(im_lowFT))
+            lowFT_p = np.fft.fftshift(np.fft.fft2(im_lowFT))
+            himFT[kyl - 1:kyh, kxl - 1:kxh] = himFT[kyl - 1:kyh, kxl - 1:kxh] + (np.conj(fmaskpro) / (np.max(np.abs(fmaskpro)**2))) * (lowFT_p - lowFT)
     
+    countimg = 0
+    tt = np.ones((1, loopnum * numim))
+
+    # for momentum method
