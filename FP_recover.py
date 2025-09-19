@@ -86,3 +86,4 @@ out_data = {
     'imlow_HDR1': imlow_HDR1
 }
 savemat(f'{out_dir}/{out_name}', out_data)
+# CJCJCJ: Left off here. Try to test with output from real himrecover from matlab
