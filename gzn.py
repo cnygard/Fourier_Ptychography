@@ -1,4 +1,5 @@
 import numpy as np
+from zernfun import zernfun
 
 def gzn(tpixel, NApixel, m, n):
     # generate Zernike mode of (n,m)
