@@ -4,8 +4,9 @@ import matplotlib.pyplot as plt
 import math
 from gzn import gzn
 
+# -1 = "-1 because python is 0-indexed"
 
-def himrecover(imseqlow, kx, ky, NA, wlength, spsize, psize, z, _opts):
+def himrecover(imseqlow, kx, ky, NA, wlength, spsize, psize, z, opts):
     #     Input:
     #        imseqlow: low-res measurements, [m1 x n1 x numim] matrix
     #        kx,ky: normalized wavevector of each LED, which should times k0 later
@@ -21,8 +22,17 @@ def himrecover(imseqlow, kx, ky, NA, wlength, spsize, psize, z, _opts):
     #        fmaskpro: recovered pupil function
     #        imseqlow: low-res amplitudes after intensity correction
 
-    # TODO: add in opts definitions / if statements
-    aberration = [1, 2, 3] # replace with opts definition of aberration
+    # Set default values for opts if not present (Matlab isfield equivalent)
+    opts = opts or {}
+    loopnum = opts.get('loopnum', 10)
+    alpha = opts.get('alpha', 1)
+    beta = opts.get('beta', 1)
+    gamma_obj = opts.get('gamma_obj', 1)
+    gamma_p = opts.get('gamma_p', 1)
+    eta_obj = opts.get('eta_obj', 0)
+    eta_p = opts.get('eta_p', 0)
+    T = opts.get('T', 0)
+    aberration = opts.get('aberration', 0)
 
     # k-spare parameterization
     m1, n1, numim = imseqlow.shape
@@ -63,4 +73,68 @@ def himrecover(imseqlow, kx, ky, NA, wlength, spsize, psize, z, _opts):
     himFT = np.fft.fftshift(np.fft.fft2(him))
 
     # main part to optimize estimate of high-res image
+    for i in range(1, 3):
+        for i3 in range(1, numim + 1):
+            # when the image size is even, there will be a half pixel displacement for the center
+            kxc = np.round((n + 1) / 2 - (kx[0, i3 - 1] / dkx)) # -1
+            kyc = np.round((m + 1) / 2 - (ky[0, i3 - 1] / dky))
+            kyl = np.round(kyc - (m1 - 1) / 2)
+            kyh = np.round(kyc + (m1 - 1) / 2)
+            kxl = np.round(kxc - (n1 - 1) / 2)
+            kxh = np.round(kxc + (n1 - 1) / 2)
+            O_j = himFT[kyl - 1:kyh, kxl - 1:kxh] # -1
+            lowFT = O_j * fmaskpro
+            im_lowFT = np.fft.ifft2(np.fft.ifftshift(lowFT))
+            updatetemp = (pratio**2) * imseqlow[:, :, i3 - 1]
+            im_lowFT = updatetemp * np.exp(1j * np.angle(im_lowFT))
+            lowFT_p = np.fft.fftshift(np.fft.fft2(im_lowFT))
+            himFT[kyl - 1:kyh, kxl - 1:kxh] = himFT[kyl - 1:kyh, kxl - 1:kxh] + (np.conj(fmaskpro) / (np.max(np.abs(fmaskpro)**2))) * (lowFT_p - lowFT)
     
+    countimg = 0
+    tt = np.ones((1, loopnum * numim))
+
+    # for momentum method
+    vobj0 = np.zeros((m, n))
+    vp0 = np.zeros((m1, n1))
+    ObjT = himFT
+    PT = fmaskpro
+
+    for i in range(1, loopnum + 1):
+        for i3 in range(1, numim + 1):
+            countimg = countimg + 1
+            kxc = np.round((n + 1) / 2 - (kx[0, i3 - 1] / dkx)) # -1
+            kyc = np.round((m + 1) / 2 - (ky[0, i3 - 1] / dky))
+            kyl = np.round(kyc - (m1 - 1) / 2)
+            kyh = np.round(kyc + (m1 - 1) / 2)
+            kxl = np.round(kxc - (n1 - 1) / 2)
+            kxh = np.round(kxc + (n1 - 1) / 2)
+            O_j = himFT[kyl - 1:kyh, kxl - 1:kxh] # -1
+            lowFT = O_j * fmaskpro
+            im_lowFT = np.fft.ifft2(np.fft.ifftshift(lowFT))
+            tt[0, i3 + (i - 2) * numim - 1] = np.mean(np.abs(im_lowFT)) / np.mean((pratio ** 2) * np.abs(imseqlow[:, :, i3 - 1]))
+            if i >= 2:
+                imseqlow[:, :, i3 - 1] = imseqlow[:, :, i3 - 1] * tt[0, i3 + (i - 2) * numim - 1]
+
+            updatetemp = (pratio**2) * imseqlow[:, :, i3 - 1]
+            im_lowFT = updatetemp * np.exp(1j * np.angle(im_lowFT))
+            lowFT_p = np.fft.fftshift(np.fft.fft2(im_lowFT))
+
+            himFT[kyl - 1:kyh, kxl - 1:kxh] = himFT[kyl - 1:kyh, kxl - 1:kxh] + (gamma_obj * np.conj(fmaskpro) * (lowFT_p - lowFT)) / ((1 - alpha) * np.abs(fmaskpro)**2 + alpha * np.max(np.abs(fmaskpro)**2))
+            fmaskpro = fmaskpro + gamma_p * np.conj(O_j) * (lowFT_p - lowFT) / ((1 - beta) * np.abs(O_j)**2 + beta * np.max(np.abs(O_j)**2))
+
+            if countimg == T: # momentum method
+                vobj = eta_obj * vobj0 + (himFT - ObjT)
+                himFT = ObjT + vobj
+                vobj0 = vobj
+                ObjT = himFT
+
+                vp = eta_p * vp0 + (fmaskpro - PT)
+                fmaskpro = PT + vp
+                vp0 = vp
+                PT = fmaskpro
+
+                countimg = 0
+    
+    him = np.fft.ifft2(np.fft.ifftshift(himFT))
+
+    return him, tt, fmaskpro, imseqlow
