@@ -38,7 +38,7 @@ def LED_location(xstart, ystart, arraysize):
         if not i <= xorynode[0, xy_order]:
             xy_order = xy_order + 1
         if xy_order % 2 == 0:
-            xlocation[1, i - 1] = xlocation[0, i - 2] + (-1)**((xy_order // 2) % 2 + 1)
+            xlocation[0, i - 1] = xlocation[0, i - 2] + (-1)**((xy_order // 2) % 2 + 1)
             ylocation[0, i - 1] = ylocation[0, i - 2]
         elif xy_order % 2 == 1:
             xlocation[0, i - 1] = xlocation[0, i - 2]

@@ -2,6 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.io
 import os
+from LED_location import LED_location
+from k_vector import k_vector
+from himrecover import himrecover
 
 # Prepare the experimental data
 # Load data file
@@ -28,14 +31,14 @@ elif show_mode == 'all':
     plt.show()
 
 # Set up the experiment parameters
-xstart = 18, ystart = 20 # absolute coordinate of initial LED
+xstart = 18; ystart = 20 # absolute coordinate of initial LED
 arraysize = 15 # side length of lit LED array
 xlocation, ylocation = LED_location(xstart, ystart, arraysize)
 H = 90.88 # distance between LEDs and sample, in mm
 LEDp = 4 # distance between adjacent LEDs, in mm
 nglass = 1.52 # refraction index of glass substrate
 t = 1 # glass thickness, in mm
-kx, ky, NAt = k_vector(xlocation-xstart, ylocation-ystart, H, LEDp, t, theta, xint, yint, arraysize^2)
+kx, ky, NAt = k_vector(xlocation-xstart, ylocation-ystart, H, LEDp, nglass, t, data['theta'][0][0], data['xint'][0][0], data['yint'][0][0], arraysize^2)
 
 # Reconstruct by FP algorithm
 NA          = 0.1      # objective NA
@@ -44,7 +47,7 @@ upsmp_ratio = 4        # upsampling ratio
 psize       = spsize/upsmp_ratio # pixel size of high-res image on sample plane, in m
 
 class Opts:
-    __init__(self, loopnum=10, alpha=1, beta=1, gamma_obj=1, gamma_p=1, eta_obj=0.2, eta_p=0.2, T=1):
+    def __init__(self, loopnum=10, alpha=1, beta=1, gamma_obj=1, gamma_p=1, eta_obj=0.2, eta_p=0.2, T=1):
         self.loopnum   = loopnum   # iteration number
         self.alpha     = alpha     # '1' for ePIE, other value for rPIE
         self.beta      = beta      # '1' for ePIE, other value for rPIE
@@ -53,15 +56,14 @@ class Opts:
         self.eta_obj   = eta_obj   # the step size for adding momentum to object updating
         self.eta_p     = eta_p     # the step size for adding momentum to pupil updating
         self.T         = T         # do momentum every T images. '0' for no momentum during the recovery; integer, generally (0, arraysize^2].
-        # self.aberration = aberration # pre-calibrated aberration, if available
-        self.abberation = 0 # TEMP use ^ that one
-        # TODO: figure out how to add an abberation
+        self.aberration = data['aberration'][0][0]
 
-used_idx = 1:1:arraysize^2 # choose which raw image is used, for example, 1:2:arraysize^2 means do FPM recovery with No1 image, No3 image, No5 image......
+used_idx = np.arange(0, arraysize^2, 1) # choose which raw image is used, for example, 1:2:arraysize^2 means do FPM recovery with No1 image, No3 image, No5 image......
 imlow_used = imlow_HDR[:,:,used_idx]
-kx_used = kx[used_idx]
-ky_used = ky[used_idx]
-him, tt, fprobe, imlow_HDR1 = himrecover(imlow_used, kx_used, ky_used, NA, wlength, spsize, psize, z, opts)
+kx_used = kx[0,used_idx]
+ky_used = ky[0,used_idx]
+opts = Opts()
+him, tt, fprobe, imlow_HDR1 = himrecover(imlow_used, kx_used, ky_used, NA, data['wlength'][0][0], spsize, psize, data['z'][0][0], opts)
 
 # display
 plt.subplot(121)

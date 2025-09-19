@@ -1,6 +1,6 @@
 import numpy as np
 
-def zernfun(n, m, r, theta, nflag, *args):
+def zernfun(n, m, r, theta, nflag = None):
     # ZERNFUN Zernike functions of order N and frequency M on the unit circle.
     #   Z = ZERNFUN(N,M,R,THETA) returns the Zernike functions of order N
     #   and angular frequency M, evaluated at positions (R,THETA) on the
@@ -114,7 +114,7 @@ def zernfun(n, m, r, theta, nflag, *args):
     
     # Check normalization
     # -------------------
-    if len(args) == 5 and isinstance(nflag, str):
+    if nflag != None and isinstance(nflag, str):
         isnorm = nflag.casefold() == 'norm'
         if not isnorm:
             raise ValueError("Unrecognized normalization flag.")

@@ -24,16 +24,17 @@ def himrecover(imseqlow, kx, ky, NA, wlength, spsize, psize, z, opts):
 
     # Set default values for opts if not present (Matlab isfield equivalent)
     opts = opts or {}
-    loopnum = opts.get('loopnum', 10)
-    alpha = opts.get('alpha', 1)
-    beta = opts.get('beta', 1)
-    gamma_obj = opts.get('gamma_obj', 1)
-    gamma_p = opts.get('gamma_p', 1)
-    eta_obj = opts.get('eta_obj', 0)
-    eta_p = opts.get('eta_p', 0)
-    T = opts.get('T', 0)
-    aberration = opts.get('aberration', 0)
+    loopnum = opts.loopnum
+    alpha = opts.alpha
+    beta = opts.beta
+    gamma_obj = opts.gamma_obj
+    gamma_p = opts.gamma_p
+    eta_obj = opts.eta_obj
+    eta_p = opts.eta_p
+    T = opts.T
+    aberration = opts.aberration
 
+    print("B1")
     # k-spare parameterization
     m1, n1, numim = imseqlow.shape
     pratio = np.round(spsize / psize) # upsampling ratio
@@ -42,24 +43,38 @@ def himrecover(imseqlow, kx, ky, NA, wlength, spsize, psize, z, opts):
     k0 = (2 * np.pi) / wlength
     kx = k0 * kx
     ky = k0 * ky
+    print("B2")
     NAfilx = NA * (1 / wlength) * n * psize
     NAfily = NA * (1 / wlength) * m * psize # m1 * spize = m * psize
     kmax = np.pi / psize # max wave vector of the OTF
     dkx = (2 * np.pi) / (psize * n)
     dky = (2 * np.pi) / (psize * m)
-    kx2 = np.arange(-kmax, kmax + 1, (n - 1) / 2) # odd N (number of points?)
-    ky2 = np.arange(-kmax, kmax + 1, (m - 1) / 2)
+    print("B3")
+    kx2 = np.arange(-kmax, kmax + 1, kmax/((n-1)/2)) # odd N (number of points?)
+    ky2 = np.arange(-kmax, kmax + 1, kmax/((m-1)/2))
+    print("B4")
+    print(f"kx2:{kx2.shape} ky2:{ky2.shape}")
     kxm, kym = np.meshgrid(kx2, ky2)
+    print("B5")
+    print(f"kxm:{kxm.shape} kym:{kym.shape}")
     kzm = np.sqrt(k0**2 - np.square(kxm) - np.square(kym))
+    print("B6")
 
+    print("C1")
     # prior knowledge of aberration
+    print(f"z:{z.shape} kzm:{kzm.shape}")
     H2 = np.exp(1j * z * np.real(kzm)) * np.exp((-1 * np.abs(z)) * np.abs(np.imag(kzm)))
+    print("C2")
     astigx = 0 # define the astigmatism aberration if it is known or you want to test it
     astigy = 0
     M1, N1 = np.meshgrid(np.arange(1, m1 + 1), np.arange(1, n1 + 1)) # add 1 because matlab's : range is inclusive on upper end
-    zn = (astigx * gzn[np.max(m1, n1), 2 * np.maximum(np.round(NAfily), np.round(NAfilx)), 2, 2] +
-     astigy * gzn[np.max(m1,n1), 2 * np.maximum(np.round(NAfily), np.round(NAfilx)), -2, 2])
+    print("C3")
+    print(f"m1:{m1} type:{type(m1)}")
+    zn = (astigx * gzn(max(m1, n1), 2 * np.maximum(np.round(NAfily), np.round(NAfilx)), np.array([2]), np.array([2])) +
+     astigy * gzn(max(m1,n1), 2 * np.maximum(np.round(NAfily), np.round(NAfilx)), np.array([-2]), np.array([2])))
+    print("C4")
     zn = cv.resize(zn, (n1, m1)) # switched m1 and n1 because OpenCV uses (width, height)
+    print("C5")
     if np.any(aberration != 0):
         fmaskpro = aberration # pre-calibrated aberration
     else:
@@ -68,12 +83,15 @@ def himrecover(imseqlow, kx, ky, NA, wlength, spsize, psize, z, opts):
         fmaskpro = np.multiply(H2[np.round(((m + 1) / 2) - ((m1 - 1) / 2)):np.round(((m + 1) / 2) + ((m1 - 1) / 2)),
                       np.round(((n + 1) / 2) - ((n1 - 1) / 2)):np.round(((n + 1) / 2) + ((n1 - 1) / 2))], np.exp(math.pi * np.multiply(1j, zn)))
         
+    print("D")
     # initialization
     him = cv.resize(np.sum(imseqlow, axis=2), (n, m)) # 2 since matlab dimensions are 1-indexed (?), switched n and m since OpenCV is (w, h)
     himFT = np.fft.fftshift(np.fft.fft2(him))
+    print("Pre loops")
 
     # main part to optimize estimate of high-res image
     for i in range(1, 3):
+        print(i)
         for i3 in range(1, numim + 1):
             # when the image size is even, there will be a half pixel displacement for the center
             kxc = np.round((n + 1) / 2 - (kx[0, i3 - 1] / dkx)) # -1
@@ -100,6 +118,7 @@ def himrecover(imseqlow, kx, ky, NA, wlength, spsize, psize, z, opts):
     PT = fmaskpro
 
     for i in range(1, loopnum + 1):
+        print(i)
         for i3 in range(1, numim + 1):
             countimg = countimg + 1
             kxc = np.round((n + 1) / 2 - (kx[0, i3 - 1] / dkx)) # -1
