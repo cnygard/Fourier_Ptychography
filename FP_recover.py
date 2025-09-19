@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.io
 import os
-import pickle
 
 # Prepare the experimental data
 # Load data file
