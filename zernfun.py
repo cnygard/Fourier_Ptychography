@@ -86,7 +86,7 @@ def zernfun(n, m, r, theta, nflag = None):
 
     # Check and prepare the inputs:
     # ----------------------------
-    if not np.any(n.shape == 1) or not np.any(m.shape == 1):
+    if not np.any(np.array(n.shape) == 1) or not np.any(np.array(m.shape) == 1):
         raise ValueError('N and M must be vectors.')
     
     if n.size != m.size:
@@ -100,10 +100,10 @@ def zernfun(n, m, r, theta, nflag = None):
     if np.any(m > n):
         raise ValueError('Each M must be less than or equal to its corresponding N.')
     
-    if np.any(r > 1 or r < 0):
+    if np.any(r > 1) or np.any(r < 0):
         raise ValueError('All R must be between 0 and 1.')
     
-    if not np.any(r.shape == 1) or not np.any(theta.shape == 1):
+    if not np.any(np.array(r.shape) == 1) or not np.any(np.array(theta.shape) == 1):
         raise ValueError('R and THETA must be vectors.')
     
     r = r.reshape(-1, 1)
@@ -128,7 +128,7 @@ def zernfun(n, m, r, theta, nflag = None):
     m_abs = np.abs(m)
     rpowers = []
     for j in range(1, len(n) + 1):
-        rpowers.extend(np.arange(m_abs[j - 1], n[j - 1] + 1, 2).toList())
+        rpowers.extend(np.arange(m_abs[j - 1], n[j - 1] + 1, 2).tolist())
     rpowers = np.unique(np.array(rpowers))
 
     # Pre-compute the values of r raised to the required powers,
@@ -151,7 +151,7 @@ def zernfun(n, m, r, theta, nflag = None):
         for k in range(max(s.shape) - 1, -1, -1): # k is on python 0-indexing
             p = (1 - 2*(s[k] % 2)) * np.prod(np.arange(2, n[j - 1] - s[k] + 1)) / \
             np.prod(2, s[k] + 1) / np.prod(2, (n[j - 1] - m_abs[j - 1]) / 2 - s[k] + 1) / \
-            np.prod(2, (n[j - 1] + m_abs[j - 1]) / 2 - s[k] + 1)
+            np.prod(2, (n[j - 1] + m_abs[j - 1]) / 2 - s[k] + 1) # TODO: next issue here
             idx = pows[k] == rpowers
             z[:, j - 1] = z[:, j - 1] + p * rpowern[:, idx]
         

@@ -7,10 +7,10 @@ def gzn(tpixel, NApixel, m, n):
     # NApixel is diameter of the NA.
     x = np.linspace(-tpixel / NApixel, tpixel / NApixel, num=tpixel)
     X, Y = np.meshgrid(x, x)
-    theta, r = cart2pol(X, Y)
+    r, theta = cart2pol(X, Y)
     idx = (r <= 1)
     z = np.zeros(len(X))
-    z[idx] = zernfun(n, m, r[idx], theta[idx]) # TODO: implement zernfun
+    z[idx] = zernfun(n, m, np.array(r[idx])[:, np.newaxis], np.array(theta[idx])[:, np.newaxis])
 
 
 def cart2pol(x, y):
