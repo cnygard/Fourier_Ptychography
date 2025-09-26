@@ -147,13 +147,13 @@ def zernfun(n, m, r, theta, nflag = None):
     z = np.zeros((length_r, len(n)))
     for j in range(1, max(n.shape) + 1):
         s = np.arange(0, (n[j - 1] - m_abs[j - 1]) // 2 + 1)
-        pows = np.arange(n[j - 1], m_abs[j - 1], -2)
+        pows = np.arange(n[j - 1], m_abs[j - 1] - 1, -2)
         for k in range(max(s.shape) - 1, -1, -1): # k is on python 0-indexing
             p = (1 - 2*(s[k] % 2)) * np.prod(np.arange(2, n[j - 1] - s[k] + 1)) / \
-            np.prod(2, s[k] + 1) / np.prod(2, (n[j - 1] - m_abs[j - 1]) / 2 - s[k] + 1) / \
-            np.prod(2, (n[j - 1] + m_abs[j - 1]) / 2 - s[k] + 1) # TODO: next issue here
-            idx = pows[k] == rpowers
-            z[:, j - 1] = z[:, j - 1] + p * rpowern[:, idx]
+            np.prod(np.arange(2, s[k] + 1)) / np.prod(np.arange(2, (n[j - 1] - m_abs[j - 1]) / 2 - s[k] + 1)) / \
+            np.prod(np.arange(2, (n[j - 1] + m_abs[j - 1]) / 2 - s[k] + 1))
+            idx = np.where(pows[k] == rpowers)[0][0] # takes the first occurence of them being equal, may be wrong
+            z[:, j - 1] = z[:, j - 1] + (p * rpowern[:, idx])
         
         if isnorm:
             z[:, j - 1] = z[:, j - 1] * np.sqrt((1 + (m[j - 1] != 0)) * (n[j - 1] + 1) / np.pi)
@@ -162,8 +162,8 @@ def zernfun(n, m, r, theta, nflag = None):
 
     # Compute the Zernike functions
     # -----------------------------
-    idx_pos = m > 0
-    idx_neg = m < 0
+    idx_pos = (m > 0)[0]
+    idx_neg = (m < 0)[0]
 
     if np.any(idx_pos):
         z[:, idx_pos] = z[:, idx_pos] * np.cos(theta * m_abs[idx_pos].T)
