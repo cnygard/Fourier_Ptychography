@@ -12,10 +12,10 @@ def gzn(tpixel, NApixel, m, n):
     idx = r <= 1
     z = np.zeros_like(X)
     z[idx] = zernfun(n, m, np.array(r[idx])[:, np.newaxis], np.array(theta[idx])[:, np.newaxis]).squeeze()
-
+    return z
 
 def cart2pol(x, y):
     rho = np.sqrt(x**2 + y**2)
     phi = np.arctan2(y, x)
-    print(f"rho:{rho.shape} phi:{phi.shape}")
+    # print(f"rho:{rho.shape} phi:{phi.shape}")
     return(rho, phi)

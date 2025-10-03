@@ -34,72 +34,72 @@ def himrecover(imseqlow, kx, ky, NA, wlength, spsize, psize, z, opts):
     T = opts.T
     aberration = opts.aberration
 
-    print("B1")
+    # print("B1")
     # k-spare parameterization
     m1, n1, numim = imseqlow.shape
     pratio = np.round(spsize / psize) # upsampling ratio
-    m = pratio * m1
-    n = pratio * n1
+    m = int(np.round(pratio * m1))
+    n = int(np.round(pratio * n1))
     k0 = (2 * np.pi) / wlength
     kx = k0 * kx
     ky = k0 * ky
-    print("B2")
+    # print("B2")
     NAfilx = NA * (1 / wlength) * n * psize
     NAfily = NA * (1 / wlength) * m * psize # m1 * spize = m * psize
     kmax = np.pi / psize # max wave vector of the OTF
     dkx = (2 * np.pi) / (psize * n)
     dky = (2 * np.pi) / (psize * m)
-    print("B3")
+    # print("B3")
     kx2 = np.arange(-kmax, kmax + 1, kmax/((n-1)/2)) # odd N (number of points?)
     ky2 = np.arange(-kmax, kmax + 1, kmax/((m-1)/2))
-    print("B4")
-    print(f"kx2:{kx2.shape} ky2:{ky2.shape}")
+    # print("B4")
+    # print(f"kx2:{kx2.shape} ky2:{ky2.shape}")
     kxm, kym = np.meshgrid(kx2, ky2)
-    print("B5")
-    print(f"kxm:{kxm.shape} kym:{kym.shape}")
+    # print("B5")
+    # print(f"kxm:{kxm.shape} kym:{kym.shape}")
     kzm = np.sqrt(k0**2 - np.square(kxm) - np.square(kym))
-    print("B6")
+    # print("B6")
 
-    print("C1")
+    # print("C1")
     # prior knowledge of aberration
-    print(f"z:{z.shape} kzm:{kzm.shape}")
+    # print(f"z:{z.shape} kzm:{kzm.shape}")
     H2 = np.exp(1j * z * np.real(kzm)) * np.exp((-1 * np.abs(z)) * np.abs(np.imag(kzm)))
-    print("C2")
+    # print("C2")
     astigx = 0 # define the astigmatism aberration if it is known or you want to test it
     astigy = 0
     M1, N1 = np.meshgrid(np.arange(1, m1 + 1), np.arange(1, n1 + 1)) # add 1 because matlab's : range is inclusive on upper end
-    print("C3")
-    print(f"m1:{m1} type:{type(m1)}")
+    # print("C3")
+    # print(f"m1:{m1} type:{type(m1)}")
     zn = (astigx * gzn(max(m1, n1), 2 * np.maximum(np.round(NAfily), np.round(NAfilx)), np.array([2]), np.array([2])) +
      astigy * gzn(max(m1,n1), 2 * np.maximum(np.round(NAfily), np.round(NAfilx)), np.array([-2]), np.array([2])))
-    print("C4")
+    # print("C4")
     zn = cv.resize(zn, (n1, m1)) # switched m1 and n1 because OpenCV uses (width, height)
-    print("C5")
+    # print("C5")
     if np.any(aberration != 0):
         fmaskpro = aberration # pre-calibrated aberration
     else:
-        fmaskpro = np.multiply(1, float(np.power(np.power(((N1 - ((m1 + 1) / 2)) / NAfily), 2 + ((M1 - ((n1 + 1) / 2)) / NAfilx)), 2) <= 1)) # low pass filter
+        fmaskpro = np.multiply(1, (np.power(np.power(((N1 - ((m1 + 1) / 2)) / NAfily), 2 + ((M1 - ((n1 + 1) / 2)) / NAfilx)), 2) <= 1).astype(float)) # low pass filter
         # defocus aberration, astigmatism aberration
-        fmaskpro = np.multiply(H2[np.round(((m + 1) / 2) - ((m1 - 1) / 2)):np.round(((m + 1) / 2) + ((m1 - 1) / 2)),
-                      np.round(((n + 1) / 2) - ((n1 - 1) / 2)):np.round(((n + 1) / 2) + ((n1 - 1) / 2))], np.exp(math.pi * np.multiply(1j, zn)))
+        fmaskpro = np.multiply(H2[int(np.round(((m + 1) / 2) - ((m1 - 1) / 2))):int(np.round(((m + 1) / 2) + ((m1 - 1) / 2)) + 1),
+                      int(np.round(((n + 1) / 2) - ((n1 - 1) / 2))):int(np.round(((n + 1) / 2) + ((n1 - 1) / 2)) + 1)], np.exp(math.pi * np.multiply(1j, zn)))
         
-    print("D")
+    # print("D")
     # initialization
     him = cv.resize(np.sum(imseqlow, axis=2), (n, m)) # 2 since matlab dimensions are 1-indexed (?), switched n and m since OpenCV is (w, h)
     himFT = np.fft.fftshift(np.fft.fft2(him))
-    print("Pre loops")
+    # print("Pre loops")
 
     # main part to optimize estimate of high-res image
     for i in range(1, 3):
-        print(i)
+        # print(i)
         for i3 in range(1, numim + 1):
             # when the image size is even, there will be a half pixel displacement for the center
-            kxc = np.round((n + 1) / 2 - (kx[0, i3 - 1] / dkx)) # -1
-            kyc = np.round((m + 1) / 2 - (ky[0, i3 - 1] / dky))
-            kyl = np.round(kyc - (m1 - 1) / 2)
-            kyh = np.round(kyc + (m1 - 1) / 2)
-            kxl = np.round(kxc - (n1 - 1) / 2)
-            kxh = np.round(kxc + (n1 - 1) / 2)
+            kxc = int(np.round((n + 1) / 2 - (kx[i3 - 1] / dkx))) # -1
+            kyc = int(np.round((m + 1) / 2 - (ky[i3 - 1] / dky)))
+            kyl = int(np.round(kyc - (m1 - 1) / 2))
+            kyh = int(np.round(kyc + (m1 - 1) / 2))
+            kxl = int(np.round(kxc - (n1 - 1) / 2))
+            kxh = int(np.round(kxc + (n1 - 1) / 2))
             O_j = himFT[kyl - 1:kyh, kxl - 1:kxh] # -1
             lowFT = O_j * fmaskpro
             im_lowFT = np.fft.ifft2(np.fft.ifftshift(lowFT))
@@ -121,12 +121,12 @@ def himrecover(imseqlow, kx, ky, NA, wlength, spsize, psize, z, opts):
         print(i)
         for i3 in range(1, numim + 1):
             countimg = countimg + 1
-            kxc = np.round((n + 1) / 2 - (kx[0, i3 - 1] / dkx)) # -1
-            kyc = np.round((m + 1) / 2 - (ky[0, i3 - 1] / dky))
-            kyl = np.round(kyc - (m1 - 1) / 2)
-            kyh = np.round(kyc + (m1 - 1) / 2)
-            kxl = np.round(kxc - (n1 - 1) / 2)
-            kxh = np.round(kxc + (n1 - 1) / 2)
+            kxc = int(np.round((n + 1) / 2 - (kx[i3 - 1] / dkx))) # -1
+            kyc = int(np.round((m + 1) / 2 - (ky[i3 - 1] / dky)))
+            kyl = int(np.round(kyc - (m1 - 1) / 2))
+            kyh = int(np.round(kyc + (m1 - 1) / 2))
+            kxl = int(np.round(kxc - (n1 - 1) / 2))
+            kxh = int(np.round(kxc + (n1 - 1) / 2))
             O_j = himFT[kyl - 1:kyh, kxl - 1:kxh] # -1
             lowFT = O_j * fmaskpro
             im_lowFT = np.fft.ifft2(np.fft.ifftshift(lowFT))
