@@ -8,7 +8,8 @@ from himrecover import himrecover
 
 # Prepare the experimental data
 # Load data file
-data_name = 'MouseKidney_green'
+# data_name = 'MouseKidney_green'
+data_name = 'USAF_red'
 data_dir = 'Data/'+data_name+'.mat'
 data = scipy.io.loadmat(data_dir) # refer to 'data_description.txt' for more details
 # Display raw images
@@ -38,7 +39,7 @@ H = 90.88 # distance between LEDs and sample, in mm
 LEDp = 4 # distance between adjacent LEDs, in mm
 nglass = 1.52 # refraction index of glass substrate
 t = 1 # glass thickness, in mm
-kx, ky, NAt = k_vector(xlocation-xstart, ylocation-ystart, H, LEDp, nglass, t, data['theta'][0][0], data['xint'][0][0], data['yint'][0][0], arraysize^2)
+kx, ky, NAt = k_vector(xlocation-xstart, ylocation-ystart, H, LEDp, nglass, t, data['theta'][0][0], data['xint'][0][0], data['yint'][0][0], arraysize**2)
 
 # Reconstruct by FP algorithm
 NA          = 0.1      # objective NA
@@ -58,7 +59,7 @@ class Opts:
         self.T         = T         # do momentum every T images. '0' for no momentum during the recovery; integer, generally (0, arraysize^2].
         self.aberration = data['aberration'][0][0]
 
-used_idx = np.arange(0, arraysize^2, 1) # choose which raw image is used, for example, 1:2:arraysize^2 means do FPM recovery with No1 image, No3 image, No5 image......
+used_idx = np.arange(0, arraysize**2, 1) # choose which raw image is used, for example, 1:2:arraysize^2 means do FPM recovery with No1 image, No3 image, No5 image......
 imlow_used = imlow_HDR[:,:,used_idx]
 kx_used = kx[0,used_idx]
 ky_used = ky[0,used_idx]
@@ -73,12 +74,15 @@ plt.subplot(122)
 plt.title('Phase')
 plt.imshow(np.angle(him[50:-50,50:-50]),cmap='gray')
 plt.show()
-print(f'Wavelength: {wlength*1e+9} nm, Loop: {opts.loopnum}')
-print(f'Maximum illumination NA = {np.max(NAt[used_ix])}')
+print(f'Wavelength: {data['wlength'][0][0]*1e+9} nm, Loop: {opts.loopnum}')
+print(f'Maximum illumination NA = {np.max(NAt[0, used_idx])}')
 
 # save results
 out_dir = 'Results'
-os.mkdir(out_dir)
+try:
+  os.mkdir(out_dir)
+except FileExistsError:
+   pass
 out_name = f'{data_name}_result.mat'
 out_data = {
     'him': him,
@@ -86,5 +90,5 @@ out_data = {
     'tt': tt,
     'imlow_HDR1': imlow_HDR1
 }
-savemat(f'{out_dir}/{out_name}', out_data)
+scipy.io.savemat(f'{out_dir}/{out_name}', out_data)
 # CJCJCJ: Left off here. Try to test with output from real himrecover from matlab

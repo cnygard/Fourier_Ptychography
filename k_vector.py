@@ -2,6 +2,7 @@ import numpy as np
 import math
 
 def k_vector(xi, yi, H, LEDp, nglass, t, theta, xint, yint, total):
+    print(f"total: {total}")
     kx = np.zeros((1,total), dtype=float)
     ky = np.copy(kx)
     NAt = np.copy(kx)
@@ -10,7 +11,7 @@ def k_vector(xi, yi, H, LEDp, nglass, t, theta, xint, yint, total):
         x0 = xint + xi[0,tt] * LEDp
         y0 = yint + yi[0,tt] * LEDp
         x1 = x0 * math.cos(theta*math.pi/180) - y0 * math.sin(theta*math.pi/180)
-        y1 = x0 * math.sin(theta*math.pi/180) - y0 * math.cos(theta*math.pi/180)
+        y1 = x0 * math.sin(theta*math.pi/180) + y0 * math.cos(theta*math.pi/180)
         kx[0,tt], ky[0,tt], NAt[0,tt] = calculate(x1,y1,H,t,nglass)
     return kx, ky, NAt
 
