@@ -8,8 +8,8 @@ from himrecover import himrecover
 
 # Prepare the experimental data
 # Load data file
-# data_name = 'MouseKidney_green'
-data_name = 'USAF_red'
+data_name = 'MouseKidney_green'
+# data_name = 'USAF_red'
 data_dir = 'Data/'+data_name+'.mat'
 data = scipy.io.loadmat(data_dir) # refer to 'data_description.txt' for more details
 # Display raw images
