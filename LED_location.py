@@ -33,15 +33,15 @@ def LED_location(xstart, ystart, arraysize):
     ylocation = np.zeros((1, arraysize**2))
     xlocation[0, 0] = xstart
     ylocation[0, 0] = ystart
-    xy_order = 2 # TODO: check this value? used for indexing so -1?
-    for i in range(2, arraysize**2 + 1):
-        if not i <= xorynode[0, xy_order]:
+    xy_order = 2
+    for i in range(1, arraysize**2):
+        if not (i + 1) <= xorynode[0, xy_order - 1]:
             xy_order = xy_order + 1
         if xy_order % 2 == 0:
-            xlocation[0, i - 1] = xlocation[0, i - 2] + (-1)**((xy_order // 2) % 2 + 1)
-            ylocation[0, i - 1] = ylocation[0, i - 2]
+            xlocation[0, i] = xlocation[0, i - 1] + (-1)**((xy_order // 2) % 2 + 1)
+            ylocation[0, i] = ylocation[0, i - 1]
         elif xy_order % 2 == 1:
-            xlocation[0, i - 1] = xlocation[0, i - 2]
-            ylocation [0, i - 1] = ylocation[0, i - 2] + (-1)**(((xy_order - 1) // 2) % 2 + 1)
+            xlocation[0, i] = xlocation[0, i - 1]
+            ylocation [0, i] = ylocation[0, i - 1] + (-1)**(((xy_order - 1) // 2) % 2 + 1)
     
     return xlocation, ylocation
