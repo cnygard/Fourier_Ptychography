@@ -78,7 +78,13 @@ def himrecover(imseqlow, kx, ky, NA, wlength, spsize, psize, z, opts):
     if np.any(aberration != 0):
         fmaskpro = aberration # pre-calibrated aberration
     else:
-        fmaskpro = np.multiply(1, (np.power(np.power(((N1 - ((m1 + 1) / 2)) / NAfily), 2 + ((M1 - ((n1 + 1) / 2)) / NAfilx)), 2) <= 1).astype(float)) # low pass filter
+        print(f"NAfilx:{NAfilx} NAfily:{NAfily}")
+        arg1 = ((N1 - ((m1 + 1) / 2)) / NAfily)
+        arg2 = ((M1 - ((n1 + 1) / 2)) / NAfilx)
+        print(f"first {np.any(np.logical_not(np.isfinite(arg1)))}")
+        print(f"second {np.any(np.logical_not(np.isfinite(arg2)))}")
+        fmaskpro_intermediate = np.power(arg1, 2 + arg2)
+        fmaskpro = np.multiply(1, (np.power(fmaskpro_intermediate, 2) <= 1).astype(float)) # low pass filter
         # defocus aberration, astigmatism aberration
         fmaskpro = np.multiply(H2[int(np.round(((m + 1) / 2) - ((m1 - 1) / 2))):int(np.round(((m + 1) / 2) + ((m1 - 1) / 2)) + 1),
                       int(np.round(((n + 1) / 2) - ((n1 - 1) / 2))):int(np.round(((n + 1) / 2) + ((n1 - 1) / 2)) + 1)], np.exp(math.pi * np.multiply(1j, zn)))
